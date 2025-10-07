@@ -140,8 +140,11 @@ object DemoPlayground extends IOApp.Simple {
 
   private val estimationArtifactProgram: IO[Unit] = {
     val injectHtml = new LlmNode with InjectHtml {
-      val instructions =
-        "Add borders to the table and align its content nicely. Reduce title size twice, if table doesn't fit vertically."
+      val instructions = prompt"""
+        Add borders to the table and align its content nicely. 
+        Reduce title size twice, if table doesn't fit vertically. 
+        Do not change paddings of the table.
+        """
       val maxTokens = 2048L
       val temperature = Temperature.Precise
       val model = LLM.Sonnet45

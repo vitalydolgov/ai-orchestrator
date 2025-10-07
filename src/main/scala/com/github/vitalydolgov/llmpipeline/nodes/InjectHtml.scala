@@ -3,8 +3,9 @@ package com.github.vitalydolgov.llmpipeline.nodes
 import cats.effect.IO
 import com.anthropic.client.AnthropicClient
 import scala.io.Source
-import java.nio.file.{Files, Paths, StandardOpenOption}
+import java.nio.file.*
 import java.nio.charset.StandardCharsets
+import java.io.File
 
 trait InjectHtml { self: LlmNode =>
   def injectData(
@@ -44,6 +45,39 @@ trait InjectHtml { self: LlmNode =>
           StandardOpenOption.TRUNCATE_EXISTING
         )
       }
+
+      // Copy assets directory from template location to output location
+      _ <- copyAssets(templatePath, outputPath)
     } yield ()
+  }
+
+  private def copyAssets(templatePath: String, outputPath: String): IO[Unit] = IO.blocking {
+    val templateDir = new File(templatePath).getParentFile
+    val outputDir = new File(outputPath).getParentFile
+    val assetsSource = new File(templateDir, "assets")
+    val assetsDest = new File(outputDir, "assets")
+
+    if (assetsSource.exists() && assetsSource.isDirectory) {
+      copyDirectory(assetsSource, assetsDest)
+    }
+  }
+
+  private def copyDirectory(source: File, dest: File): Unit = {
+    if (!dest.exists()) {
+      dest.mkdirs()
+    }
+
+    source.listFiles().foreach { file =>
+      val destFile = new File(dest, file.getName)
+      if (file.isDirectory) {
+        copyDirectory(file, destFile)
+      } else {
+        try {
+          Files.copy(file.toPath, destFile.toPath, StandardCopyOption.REPLACE_EXISTING)
+        } catch {
+          case _: FileAlreadyExistsException => // Do nothing
+        }
+      }
+    }
   }
 }
